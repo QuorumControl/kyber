@@ -80,6 +80,34 @@ func TestBLSFailAggregatedSig(t *testing.T) {
 		t.Fatal("bls: verification succeeded unexpectedly")
 	}
 }
+
+func TestBinaryMarshalAfterAggregation(t *testing.T) {
+	suite := bn256.NewSuite()
+
+	_, public1 := NewKeyPair(suite, random.New())
+	_, public2 := NewKeyPair(suite, random.New())
+
+	// this works:
+	workingKey := AggregatePublicKeys(suite, public1, public2, public1)
+
+	workingBits, err := workingKey.MarshalBinary()
+	require.Nil(t, err)
+
+	workingPoint := suite.G2().Point()
+	err = workingPoint.UnmarshalBinary(workingBits)
+	require.Nil(t, err)
+
+	// this fails - this seems to only fail when the first key is repeated
+	aggregatedKey := AggregatePublicKeys(suite, public1, public1, public2)
+
+	bits, err := aggregatedKey.MarshalBinary()
+	require.Nil(t, err)
+
+	point := suite.G2().Point()
+	err = point.UnmarshalBinary(bits)
+	require.Nil(t, err)
+}
+
 func TestBLSFailAggregatedKey(t *testing.T) {
 	msg := []byte("Hello Boneh-Lynn-Shacham")
 	suite := bn256.NewSuite()
